@@ -1,26 +1,26 @@
-package org.example.taskmanagementapi.dto;
-
-
-import jakarta.validation.constraints.*;
+package org.example.taskmanagementapi.dto.user;
 
 public class UserDTO {
-    private int id;
-
-    @NotBlank(message = "User must have a name")
+    private long id;
     private String name;
-
-    @Email(message = "Please add valid email")
-    private String email;
-
-    @Size(min = 8, message = "Password must have at least 8 character")
     private String password;
     private String image;
 
-    public int getId() {
+    public UserDTO() {
+    }
+
+    public UserDTO(long id, String name, String password, String image) {
+        this.id = id;
+        this.name = name;
+        this.password = password;
+        this.image = image;
+    }
+
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -30,14 +30,6 @@ public class UserDTO {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
     }
 
     public String getPassword() {

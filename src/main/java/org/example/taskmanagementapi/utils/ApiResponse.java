@@ -2,15 +2,15 @@ package org.example.taskmanagementapi.utils;
 
 import java.util.List;
 
-public class ApiResponse<T> {
+public class ApiResponse {
     private boolean success;
     private String message;
-    private T data;
+    private Object data;
 
     public ApiResponse() {
     }
 
-    public ApiResponse(boolean success, String message, T data) {
+    public ApiResponse(boolean success, String message, Object data) {
         this.success = success;
         this.message = message;
         this.data = data;
@@ -32,15 +32,15 @@ public class ApiResponse<T> {
         this.message = message;
     }
 
-    public T getData() {
+    public Object getData() {
         return data;
     }
 
-    public void setData(T data) {
+    public void setData(Object data) {
         this.data = data;
     }
 
-    public static <T>ApiResponse<T> response(boolean success,String message, T data) {
-        return new ApiResponse<T>(success,message,data);
+    public static ApiResponse response(boolean success,String message, Object data) {
+        return new ApiResponse(success,message,data);
     }
 }
