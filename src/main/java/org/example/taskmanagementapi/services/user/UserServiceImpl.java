@@ -7,6 +7,8 @@ import org.example.taskmanagementapi.mappers.UserMapper;
 import org.example.taskmanagementapi.repositories.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.security.Principal;
+
 
 @Service
 public class UserServiceImpl implements UserService{
@@ -22,7 +24,7 @@ public class UserServiceImpl implements UserService{
     public User saveUser(User user) {
         return userRepository.save(user);
     }
-
+    
     @Override
     public User findUserByEmail(String email) {
         return userRepository.findUserByEmail(email)
@@ -54,5 +56,10 @@ public class UserServiceImpl implements UserService{
     @Override
     public boolean existsUserById(Long id) {
         return userRepository.existsUserById(id);
+    }
+
+    @Override
+    public UserDTO getLoggedUser(Principal currentUser) {
+        return findUserDTOByEmail(currentUser.getName());
     }
 }

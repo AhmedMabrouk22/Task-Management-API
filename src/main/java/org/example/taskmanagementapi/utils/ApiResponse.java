@@ -1,7 +1,5 @@
 package org.example.taskmanagementapi.utils;
 
-import java.util.List;
-
 public class ApiResponse {
     private boolean success;
     private String message;
