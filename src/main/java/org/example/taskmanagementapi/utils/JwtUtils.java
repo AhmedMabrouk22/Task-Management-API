@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.example.taskmanagementapi.config.security.user.CustomUserDetails;
 import org.example.taskmanagementapi.entities.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -36,9 +37,7 @@ public class JwtUtils {
     }
 
     private Key getsinginKey() {
-//        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
-//        return Keys.hmacShaKeyFor(keyBytes);
-        byte[] keyBytes = Keys.secretKeyFor(SignatureAlgorithm.HS256).getEncoded();
+        byte[] keyBytes = Decoders.BASE64.decode(SECRET_KEY);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
@@ -53,7 +52,10 @@ public class JwtUtils {
     }
 
     public String generateToken(User userDetails) {
-        return generateToken(new HashMap<>(), userDetails);
+        Map<String,Object> data = new HashMap<>();
+        data.put("id", userDetails.getId());
+        data.put("email", userDetails.getEmail());
+        return generateToken(data, userDetails);
     }
     public <T> T extractClaim(String jwt, Function<Claims,T> extractResolver) {
         Claims claims = extractClaims(jwt);
@@ -64,9 +66,10 @@ public class JwtUtils {
         Date expirationDate = extractClaim(token, Claims::getExpiration);
         return expirationDate.before(new Date());
     }
-    public boolean isTokenValid(String token, UserDetails userDetails) {
+    public boolean isTokenValid(String token, CustomUserDetails userDetails) {
         String userEmail = extractClaim(token, Claims::getSubject);
         return userEmail.equals(userDetails.getUsername()) && !isTokenExpired(token);
+
     }
 
 }

@@ -1,14 +1,18 @@
 package org.example.taskmanagementapi.entities;
 
 import jakarta.persistence.*;
+import org.example.taskmanagementapi.config.security.user.CustomUserDetails;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Collection;
 
 @Entity
 @Table(name="users")
-public class User implements UserDetails {
+public class User implements CustomUserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
@@ -20,6 +24,12 @@ public class User implements UserDetails {
     private String email;
     private String password;
     private String image;
+
+    private LocalDateTime lastPasswordChange;
+
+
+    @CreatedDate
+    private LocalDateTime createdAt;
 
     public User() {
     }
@@ -60,6 +70,23 @@ public class User implements UserDetails {
     }
 
     @Override
+    public LocalDateTime getLastPasswordChange() {
+        return lastPasswordChange;
+    }
+
+    public void setLastPasswordChange(LocalDateTime lastPasswordChange) {
+        this.lastPasswordChange = lastPasswordChange;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return null;
     }
@@ -75,22 +102,22 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return UserDetails.super.isAccountNonExpired();
+        return CustomUserDetails.super.isAccountNonExpired();
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return UserDetails.super.isAccountNonLocked();
+        return CustomUserDetails.super.isAccountNonLocked();
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return UserDetails.super.isCredentialsNonExpired();
+        return CustomUserDetails.super.isCredentialsNonExpired();
     }
 
     @Override
     public boolean isEnabled() {
-        return UserDetails.super.isEnabled();
+        return CustomUserDetails.super.isEnabled();
     }
 
     public void setPassword(String password) {

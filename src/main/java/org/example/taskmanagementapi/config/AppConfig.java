@@ -1,5 +1,6 @@
 package org.example.taskmanagementapi.config;
 
+import org.example.taskmanagementapi.config.security.user.CustomUserDetailsService;
 import org.example.taskmanagementapi.exceptions.auth.InvalidEmailOrPasswordException;
 import org.example.taskmanagementapi.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,19 +14,15 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Optional;
+
 @Configuration
 public class AppConfig {
-    private final UserRepository userRepository;
+    private final CustomUserDetailsService userDetailsService;
 
     @Autowired
-    public AppConfig(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-    @Bean
-    public UserDetailsService userDetailsService() {
-        return username -> userRepository
-                .findUserByEmail(username)
-                .orElseThrow(() -> new InvalidEmailOrPasswordException());
+    public AppConfig(CustomUserDetailsService userDetailsService) {
+        this.userDetailsService = userDetailsService;
     }
 
     @Bean
@@ -36,7 +33,7 @@ public class AppConfig {
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
-        daoAuthenticationProvider.setUserDetailsService(userDetailsService());
+        daoAuthenticationProvider.setUserDetailsService(userDetailsService);
         daoAuthenticationProvider.setPasswordEncoder(passwordEncoder());
         return daoAuthenticationProvider;
     }
