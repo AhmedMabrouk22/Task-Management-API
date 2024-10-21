@@ -5,7 +5,10 @@ import jakarta.persistence.*;
 import org.example.taskmanagementapi.enums.ProjectRole;
 
 @Entity
-@Table(name = "project_members")
+@Table(
+        name = "project_members",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "project_id"}, name = "UK_PROJECT_MEMBERS")
+)
 public class ProjectMembers {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

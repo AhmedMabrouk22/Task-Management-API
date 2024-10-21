@@ -10,12 +10,15 @@ import org.example.taskmanagementapi.entities.Project;
 import org.example.taskmanagementapi.entities.ProjectMembers;
 import org.example.taskmanagementapi.entities.User;
 import org.example.taskmanagementapi.enums.ProjectRole;
+import org.example.taskmanagementapi.exceptions.DatabaseException;
 import org.example.taskmanagementapi.exceptions.NotFoundExceptionHandler;
 import org.example.taskmanagementapi.exceptions.auth.AuthException;
 import org.example.taskmanagementapi.repositories.ProjectMembersRepository;
 import org.example.taskmanagementapi.repositories.ProjectRepository;
 import org.example.taskmanagementapi.services.user.UserService;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -152,18 +155,23 @@ public class ProjectServiceImpl implements ProjectService{
     @Override
     @Transactional
     public void addTeamMember(String user_email,long project_id) {
-        var projectManager = getTeamMember(project_id);
-        if (projectManager.getRole() != ProjectRole.PROJECT_MANAGER) {
-            throw new AuthException("You Unauthorized to add member to this project", HttpStatus.UNAUTHORIZED);
-        }
+        try {
+            var projectManager = getTeamMember(project_id);
+            if (projectManager.getRole() != ProjectRole.PROJECT_MANAGER) {
+                throw new AuthException("You Unauthorized to add member to this project", HttpStatus.UNAUTHORIZED);
+            }
 
-        User user = userService.findUserByEmail(user_email);
-        Project project = findProjectById(project_id);
-        ProjectMembers member = new ProjectMembers();
-        member.setRole(ProjectRole.TEAM_MEMBER);
-        member.setUser(user);
-        member.setProject(project);
-        projectMembersRepository.save(member);
+            User user = userService.findUserByEmail(user_email);
+            Project project = findProjectById(project_id);
+            ProjectMembers member = new ProjectMembers();
+            member.setRole(ProjectRole.TEAM_MEMBER);
+            member.setUser(user);
+            member.setProject(project);
+            projectMembersRepository.save(member);
+        }
+        catch (DataIntegrityViolationException ex) {
+            throw new DatabaseException("user with email: " + user_email + " already member in this project");
+        }
     }
 
     @Override
