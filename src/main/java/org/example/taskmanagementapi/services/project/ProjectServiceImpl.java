@@ -173,7 +173,7 @@ public class ProjectServiceImpl implements ProjectService{
         if (projectManager.getRole() != ProjectRole.PROJECT_MANAGER) {
             throw new AuthException("You Unauthorized to delete member from this project", HttpStatus.UNAUTHORIZED);
         }
-        projectMembersRepository.deleteById(projectManager.getId());
+        projectMembersRepository.deleteByUser_IdAndProject_Id(user_id,project_id);
     }
 
 

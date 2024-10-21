@@ -15,5 +15,7 @@ public interface ProjectMembersRepository extends JpaRepository<ProjectMembers,L
     @Query("select p from ProjectMembers p where p.user.id = :user_id and p.project.id = :project_id")
     Optional<ProjectMembers> findByUser_Id(long user_id, long project_id);
 
-    void deleteById(long id);
+    @Query("delete from ProjectMembers where user.id = :user_id and project.id = :project_id")
+    @Modifying
+    void deleteByUser_IdAndProject_Id(long user_id,long project_id);
 }
