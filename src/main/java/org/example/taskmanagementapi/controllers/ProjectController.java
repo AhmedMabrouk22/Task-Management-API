@@ -69,7 +69,16 @@ public class ProjectController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.response(true,"member add successfully to project with id: " + id, null));
     }
-    
+
+    @GetMapping("/{id}/members")
+    public ResponseEntity<ApiResponse> getProjectMembers(@PathVariable long id,
+                                                         @RequestParam(defaultValue = "0") int page,
+                                                         @RequestParam(defaultValue = "10") int size) {
+        var data = projectService.getProjectMembers(id,page,size);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(ApiResponse.response(true,"project members get successfully", data));
+    }
+
     @DeleteMapping("/{project_id}/members/{member_id}")
     public ResponseEntity<ApiResponse> deleteTeamMember(@PathVariable long project_id, @PathVariable long member_id) {
         projectService.deleteTeamMember(member_id,project_id);

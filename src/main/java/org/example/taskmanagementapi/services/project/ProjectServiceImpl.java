@@ -3,9 +3,7 @@ package org.example.taskmanagementapi.services.project;
 
 import jakarta.transaction.Transactional;
 import org.example.taskmanagementapi.config.security.user.CustomUserDetails;
-import org.example.taskmanagementapi.dto.project.CreateProjectDTO;
-import org.example.taskmanagementapi.dto.project.ProjectPageResponseDTO;
-import org.example.taskmanagementapi.dto.project.ProjectResponseDTO;
+import org.example.taskmanagementapi.dto.project.*;
 import org.example.taskmanagementapi.entities.Project;
 import org.example.taskmanagementapi.entities.ProjectMembers;
 import org.example.taskmanagementapi.entities.User;
@@ -18,10 +16,13 @@ import org.example.taskmanagementapi.repositories.ProjectRepository;
 import org.example.taskmanagementapi.services.user.UserService;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -38,13 +39,16 @@ public class ProjectServiceImpl implements ProjectService{
     private final UserService userService;
     private final ProjectMembersRepository projectMembersRepository;
 
+    private final Environment environment;
+
     @Autowired
     public ProjectServiceImpl(ProjectRepository projectRepository,
                               UserService userService,
-                              ProjectMembersRepository projectMembersRepository) {
+                              ProjectMembersRepository projectMembersRepository, Environment environment) {
         this.projectRepository = projectRepository;
         this.userService = userService;
         this.projectMembersRepository = projectMembersRepository;
+        this.environment = environment;
     }
 
     private Project findProjectById(long id) {
@@ -65,6 +69,17 @@ public class ProjectServiceImpl implements ProjectService{
                 project.getDescription(),
                 project.getCreatedAt(),
                 project.getUpdatedAt()
+        );
+    }
+
+    private ProjectMemberDTO buildProjectMemberResponse(ProjectMembers member) {
+        User user = member.getUser();
+        return new ProjectMemberDTO(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getImage(),
+                member.getRole()
         );
     }
 
@@ -92,13 +107,26 @@ public class ProjectServiceImpl implements ProjectService{
     public ProjectResponseDTO findById(long id) {
         Project project =  findProjectById(id);
         getTeamMember(id);
-        System.out.println("Project Members: ");
-        project.getTeamMembers().forEach(member -> {
-            System.out.println("name: " + member.getUser().getName());
-            System.out.println("image: " + member.getUser().getImage());
-            System.out.println("email: " + member.getUser().getEmail());
-        });
-        return buildProjectResponse(project);
+
+        String sizeENV = environment.getProperty("project.members.size");
+        int size = 10;
+        if (sizeENV != null) size = Integer.parseInt(sizeENV);
+        ProjectMembersPageResponseDTO members = getProjectMembers(id,0,size);
+
+//        System.out.println("Project Members: ");
+//        project.getTeamMembers().forEach(member -> {
+//            System.out.println("name: " + member.getUser().getName());
+//            System.out.println("image: " + member.getUser().getImage());
+//            System.out.println("email: " + member.getUser().getEmail());
+//        });
+        return new ProjectResponseDTO(
+                project.getId(),
+                project.getName(),
+                project.getDescription(),
+                members,
+                project.getCreatedAt(),
+                project.getUpdatedAt()
+        );
     }
 
     @Override
@@ -182,6 +210,22 @@ public class ProjectServiceImpl implements ProjectService{
             throw new AuthException("You Unauthorized to delete member from this project", HttpStatus.UNAUTHORIZED);
         }
         projectMembersRepository.deleteByUser_IdAndProject_Id(user_id,project_id);
+    }
+
+    @Override
+    public ProjectMembersPageResponseDTO getProjectMembers(long project_id, int page, int size) {
+        Pageable pageable = PageRequest.of(page,size);
+        Page<ProjectMembers> members = projectMembersRepository.findByProject_Id(project_id,pageable);
+        List<ProjectMemberDTO> projectMember = members.stream()
+                .map(this::buildProjectMemberResponse)
+                .toList();
+
+        return new ProjectMembersPageResponseDTO(
+                members.getTotalPages(),
+                members.getTotalElements(),
+                members.getNumber(),
+                projectMember
+        );
     }
 
 
