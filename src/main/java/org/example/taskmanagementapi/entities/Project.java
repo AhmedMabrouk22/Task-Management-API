@@ -1,6 +1,8 @@
 package org.example.taskmanagementapi.entities;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 
@@ -21,10 +23,10 @@ public class Project {
     @OneToMany(mappedBy = "project", cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
     private Set<ProjectMembers> teamMembers = new HashSet<>();
 
-    @CreatedDate
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
 
     public Project() {
