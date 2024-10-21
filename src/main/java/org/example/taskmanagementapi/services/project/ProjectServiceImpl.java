@@ -52,7 +52,7 @@ public class ProjectServiceImpl implements ProjectService{
     private ProjectMembers getTeamMember(long project_id) {
         CustomUserDetails currentUser = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return projectMembersRepository.findByUser_Id(currentUser.getId(),project_id)
-                .orElseThrow(() -> new AuthException("You Unauthorized to update this project", HttpStatus.UNAUTHORIZED));
+                .orElseThrow(() -> new AuthException("You unauthorized to access this project", HttpStatus.UNAUTHORIZED));
     }
 
     private ProjectResponseDTO buildProjectResponse(Project project) {
@@ -89,6 +89,12 @@ public class ProjectServiceImpl implements ProjectService{
     public ProjectResponseDTO findById(long id) {
         Project project =  findProjectById(id);
         getTeamMember(id);
+        System.out.println("Project Members: ");
+        project.getTeamMembers().forEach(member -> {
+            System.out.println("name: " + member.getUser().getName());
+            System.out.println("image: " + member.getUser().getImage());
+            System.out.println("email: " + member.getUser().getEmail());
+        });
         return buildProjectResponse(project);
     }
 
@@ -161,13 +167,13 @@ public class ProjectServiceImpl implements ProjectService{
     }
 
     @Override
+    @Transactional
     public void deleteTeamMember(long user_id, long project_id) {
         var projectManager = getTeamMember(project_id);
         if (projectManager.getRole() != ProjectRole.PROJECT_MANAGER) {
             throw new AuthException("You Unauthorized to delete member from this project", HttpStatus.UNAUTHORIZED);
         }
-
-        projectMembersRepository.deleteByUser_IdAndProject_Id(user_id,project_id);
+        projectMembersRepository.deleteById(projectManager.getId());
     }
 
 

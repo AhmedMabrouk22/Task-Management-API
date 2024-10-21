@@ -2,6 +2,7 @@ package org.example.taskmanagementapi.entities;
 
 import jakarta.persistence.*;
 import org.example.taskmanagementapi.config.security.user.CustomUserDetails;
+import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -33,7 +34,7 @@ public class User implements CustomUserDetails {
     private LocalDateTime lastPasswordChange;
 
 
-    @CreatedDate
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
     public User() {

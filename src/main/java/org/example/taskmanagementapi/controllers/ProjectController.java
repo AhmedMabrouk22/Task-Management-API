@@ -1,10 +1,8 @@
 package org.example.taskmanagementapi.controllers;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import org.example.taskmanagementapi.dto.project.CreateProjectDTO;
+import org.example.taskmanagementapi.dto.user.UserEmailDTO;
 import org.example.taskmanagementapi.services.project.ProjectService;
 import org.example.taskmanagementapi.utils.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -65,21 +63,17 @@ public class ProjectController {
     }
 
     @PostMapping("/{id}/members")
-    public ResponseEntity<ApiResponse> addTeamMember(@RequestBody
-                                                         @NotBlank(message = "email is required")
-                                                         @Email(message = "invalid email") String email,
+    public ResponseEntity<ApiResponse> addTeamMember(@RequestBody @Valid UserEmailDTO email,
                                                      @PathVariable long id) {
-        projectService.addTeamMember(email,id);
+        projectService.addTeamMember(email.getEmail(),id);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.response(true,"member add successfully to project with id: " + id, null));
     }
     
-    @DeleteMapping("/{id}/members")
-    public ResponseEntity<ApiResponse> deleteTeamMember(@RequestBody()
-                                                         @NotNull(message = "user id is required") long user_id,
-                                                     @PathVariable long id) {
-        projectService.deleteTeamMember(user_id,id);
+    @DeleteMapping("/{project_id}/members/{member_id}")
+    public ResponseEntity<ApiResponse> deleteTeamMember(@PathVariable long project_id, @PathVariable long member_id) {
+        projectService.deleteTeamMember(member_id,project_id);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponse.response(true,"member deleted successfully to project with id: " + id, null));
+                .body(ApiResponse.response(true,"member deleted successfully to project with id: " + project_id, null));
     } 
 }
