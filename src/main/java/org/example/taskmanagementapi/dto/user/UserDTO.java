@@ -12,6 +12,13 @@ public class UserDTO {
     public UserDTO() {
     }
 
+    public UserDTO(long id, String name, String email, String image) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.image = image;
+    }
+
     public UserDTO(long id, String name, String email, String image, LocalDateTime lastPasswordChange) {
         this.id = id;
         this.name = name;

@@ -2,6 +2,7 @@ package org.example.taskmanagementapi.entities;
 
 import jakarta.persistence.*;
 import org.example.taskmanagementapi.config.security.user.CustomUserDetails;
+import org.hibernate.annotations.CreationTimestamp;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -9,6 +10,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name="users")
@@ -25,10 +28,13 @@ public class User implements CustomUserDetails {
     private String password;
     private String image;
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    private Set<ProjectMembers> teamMembers = new HashSet<>();
+
     private LocalDateTime lastPasswordChange;
 
 
-    @CreatedDate
+    @CreationTimestamp
     private LocalDateTime createdAt;
 
     public User() {
@@ -45,6 +51,7 @@ public class User implements CustomUserDetails {
         this.image = image;
     }
 
+    @Override
     public long getId() {
         return id;
     }
@@ -67,6 +74,14 @@ public class User implements CustomUserDetails {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public Set<ProjectMembers> getTeamMembers() {
+        return teamMembers;
+    }
+
+    public void setTeamMembers(Set<ProjectMembers> teamMembers) {
+        this.teamMembers = teamMembers;
     }
 
     @Override
@@ -132,3 +147,4 @@ public class User implements CustomUserDetails {
         this.image = image;
     }
 }
+
