@@ -23,6 +23,9 @@ public class Project {
     @OneToMany(mappedBy = "project", cascade = CascadeType.REMOVE,fetch = FetchType.LAZY)
     private Set<ProjectMembers> teamMembers = new HashSet<>();
 
+    @OneToMany(mappedBy = "project", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
+    private Set<Task> tasks = new HashSet<>();
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 
@@ -79,4 +82,13 @@ public class Project {
     public void setTeamMembers(Set<ProjectMembers> teamMembers) {
         this.teamMembers = teamMembers;
     }
+
+    public Set<Task> getTasks() {
+        return tasks;
+    }
+
+    public void setTasks(Set<Task> tasks) {
+        this.tasks = tasks;
+    }
+
 }

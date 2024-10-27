@@ -31,6 +31,8 @@ public class User implements CustomUserDetails {
     @OneToMany(mappedBy = "user", cascade = CascadeType.REMOVE, fetch = FetchType.LAZY)
     private Set<ProjectMembers> teamMembers = new HashSet<>();
 
+    @OneToMany(mappedBy = "user", cascade = CascadeType.REFRESH, fetch = FetchType.LAZY)
+    private Set<Task> tasks = new HashSet<>();
     private LocalDateTime lastPasswordChange;
 
 
@@ -91,6 +93,14 @@ public class User implements CustomUserDetails {
 
     public void setLastPasswordChange(LocalDateTime lastPasswordChange) {
         this.lastPasswordChange = lastPasswordChange;
+    }
+
+    public Set<Task> getTasks() {
+        return tasks;
+    }
+
+    public void setTasks(Set<Task> tasks) {
+        this.tasks = tasks;
     }
 
     public LocalDateTime getCreatedAt() {

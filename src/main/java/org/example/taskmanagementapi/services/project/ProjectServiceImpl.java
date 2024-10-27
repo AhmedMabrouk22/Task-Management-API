@@ -51,11 +51,6 @@ public class ProjectServiceImpl implements ProjectService{
         this.environment = environment;
     }
 
-    private Project findProjectById(long id) {
-        return projectRepository.findById(id)
-                .orElseThrow(() -> new NotFoundExceptionHandler("Project with ID " + id + " not found"));
-    }
-
     private ProjectMembers getTeamMember(long project_id) {
         CustomUserDetails currentUser = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return projectMembersRepository.findByUser_Id(currentUser.getId(),project_id)
@@ -85,6 +80,11 @@ public class ProjectServiceImpl implements ProjectService{
 
 
     @Override
+    public Project findProjectById(long id) {
+        return projectRepository.findById(id)
+                .orElseThrow(() -> new NotFoundExceptionHandler("Project with ID " + id + " not found"));
+    }
+    @Override
     @Transactional
     public ProjectResponseDTO save(CreateProjectDTO projectDTO, Principal currentUser) {
         Project project = new Project();
@@ -104,7 +104,7 @@ public class ProjectServiceImpl implements ProjectService{
     }
 
     @Override
-    public ProjectResponseDTO findById(long id) {
+    public ProjectResponseDTO findProjectDTOById(long id) {
         Project project =  findProjectById(id);
         getTeamMember(id);
 

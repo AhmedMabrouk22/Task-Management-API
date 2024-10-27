@@ -1,4 +1,9 @@
 package org.example.taskmanagementapi.enums;
 
-public class TasksStatus {
+public enum TasksStatus {
+    NOT_ASSIGNED,
+    TO_DO,
+    IN_PROGRESS,
+    COMPLETED
+
 }

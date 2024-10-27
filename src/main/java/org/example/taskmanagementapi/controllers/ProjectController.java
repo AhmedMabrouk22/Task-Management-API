@@ -42,7 +42,7 @@ public class ProjectController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse> findProjectById(@PathVariable long id) {
-        var data = projectService.findById(id);
+        var data = projectService.findProjectDTOById(id);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.response(true,"project get successfully", data));
     }
