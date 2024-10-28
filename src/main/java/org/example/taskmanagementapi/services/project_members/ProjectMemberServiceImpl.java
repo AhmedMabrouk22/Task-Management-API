@@ -20,6 +20,7 @@ public class ProjectMemberServiceImpl implements ProjectMembersService {
         this.projectMembersRepository = projectMembersRepository;
     }
 
+
     @Override
     public ProjectMembers getProjectMember(long projectId) {
         CustomUserDetails currentUser = (CustomUserDetails) SecurityContextHolder.getContext()

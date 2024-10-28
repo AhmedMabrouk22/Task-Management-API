@@ -9,6 +9,11 @@ import org.example.taskmanagementapi.entities.Task;
 public interface TaskService {
     TaskDTO create(CreateTaskDTO taskDTO);
 
+    /**
+     * Get task by id, if not exist throw error
+     * @param taskId
+     * @return Task
+     */
     Task findTaskById(long taskId);
     void delete(long taskId);
     TaskDTO update(long taskId, UpdateTaskDTO taskDTO);
