@@ -7,11 +7,11 @@ import org.example.taskmanagementapi.dto.project.ProjectResponseDTO;
 import org.example.taskmanagementapi.entities.Project;
 
 import java.security.Principal;
-import java.util.List;
 
 public interface ProjectService {
     ProjectResponseDTO save(CreateProjectDTO projectDTO, Principal currentUser);
-    ProjectResponseDTO findById(long id);
+    Project findProjectById(long id);
+    ProjectResponseDTO findProjectDTOById(long id);
     ProjectResponseDTO updateById(long id, CreateProjectDTO projectDTO);
     void deleteById(long project_id);
 
