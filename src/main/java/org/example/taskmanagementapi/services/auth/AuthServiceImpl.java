@@ -1,6 +1,7 @@
 package org.example.taskmanagementapi.services.auth;
 
 import jakarta.transaction.Transactional;
+import org.example.taskmanagementapi.config.security.user.CustomUserDetails;
 import org.example.taskmanagementapi.dto.OTP.UserOTPDTO;
 import org.example.taskmanagementapi.dto.auth.*;
 import org.example.taskmanagementapi.dto.user.UserDTO;
@@ -16,18 +17,22 @@ import org.example.taskmanagementapi.utils.EmailService;
 import org.example.taskmanagementapi.utils.JwtUtils;
 import org.example.taskmanagementapi.utils.OtpService;
 import org.example.taskmanagementapi.utils.RefreshTokenGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
+
 
 
 @Service
@@ -42,6 +47,7 @@ public class AuthServiceImpl implements AuthService{
 
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
 
 
     @Autowired
@@ -96,7 +102,7 @@ public class AuthServiceImpl implements AuthService{
         res.setAccessToken(token);
         res.setRefreshToken(refreshToken);
         res.setUserId(user.getId());
-
+        logger.info("create new user with id {}", res.getUserId());
         return res;
     }
 
@@ -104,21 +110,18 @@ public class AuthServiceImpl implements AuthService{
     public AuthResponseDTO login(LoginRequestDTO loginRequestDTO) {
 
         try {
-            authenticationManager.authenticate(
+            Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequestDTO.getEmail(),loginRequestDTO.getPassword())
             );
+            User user = (User) auth.getPrincipal();
+            String token = jwtUtils.generateToken(user);
+            String refreshToken = RefreshTokenGenerator.generateRandomToken();
+            refreshTokenService.saveToken(refreshToken,user);
+            return new AuthResponseDTO(token,refreshToken,user.getId());
+
         } catch (AuthenticationException ex) {
             throw new InvalidEmailOrPasswordException();
         }
-
-        UserDTO userDto = userService.findUserDTOByEmail(loginRequestDTO.getEmail());
-        User user = userMapper.ToEntity(userDto);
-
-        String token = jwtUtils.generateToken(user);
-        String refreshToken = RefreshTokenGenerator.generateRandomToken();
-        refreshTokenService.saveToken(refreshToken,user);
-
-        return new AuthResponseDTO(token,refreshToken,user.getId());
     }
 
     @Override
