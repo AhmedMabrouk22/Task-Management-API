@@ -1,6 +1,7 @@
 package org.example.taskmanagementapi.services.auth;
 
 import jakarta.transaction.Transactional;
+import org.example.taskmanagementapi.config.security.user.CustomUserDetails;
 import org.example.taskmanagementapi.dto.OTP.UserOTPDTO;
 import org.example.taskmanagementapi.dto.auth.*;
 import org.example.taskmanagementapi.dto.user.UserDTO;
@@ -16,18 +17,23 @@ import org.example.taskmanagementapi.utils.EmailService;
 import org.example.taskmanagementapi.utils.JwtUtils;
 import org.example.taskmanagementapi.utils.OtpService;
 import org.example.taskmanagementapi.utils.RefreshTokenGenerator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cglib.core.Local;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
+
 
 
 @Service
@@ -42,6 +48,7 @@ public class AuthServiceImpl implements AuthService{
 
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
 
 
     @Autowired
@@ -96,7 +103,7 @@ public class AuthServiceImpl implements AuthService{
         res.setAccessToken(token);
         res.setRefreshToken(refreshToken);
         res.setUserId(user.getId());
-
+        logger.info("Signup new user with email: {} at: {}", res.getUserId(), LocalDateTime.now());
         return res;
     }
 
@@ -104,34 +111,31 @@ public class AuthServiceImpl implements AuthService{
     public AuthResponseDTO login(LoginRequestDTO loginRequestDTO) {
 
         try {
-            authenticationManager.authenticate(
+            Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequestDTO.getEmail(),loginRequestDTO.getPassword())
             );
+            User user = (User) auth.getPrincipal();
+            String token = jwtUtils.generateToken(user);
+            String refreshToken = RefreshTokenGenerator.generateRandomToken();
+            refreshTokenService.saveToken(refreshToken,user);
+            logger.info("User with email: {} login at {}",user.getEmail(),LocalDateTime.now());
+            return new AuthResponseDTO(token,refreshToken,user.getId());
         } catch (AuthenticationException ex) {
             throw new InvalidEmailOrPasswordException();
         }
-
-        UserDTO userDto = userService.findUserDTOByEmail(loginRequestDTO.getEmail());
-        User user = userMapper.ToEntity(userDto);
-
-        String token = jwtUtils.generateToken(user);
-        String refreshToken = RefreshTokenGenerator.generateRandomToken();
-        refreshTokenService.saveToken(refreshToken,user);
-
-        return new AuthResponseDTO(token,refreshToken,user.getId());
     }
 
     @Override
     @Transactional
-    public AuthResponseDTO changePassword(ChangePasswordDTO changePasswordDTO, Principal currentUser) {
-//        get user from database
-        User user = this.userService.findUserByEmail(currentUser.getName());
-//        compare passed password with the current password
+    public AuthResponseDTO changePassword(ChangePasswordDTO changePasswordDTO) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        // Compare passed password with the current password
         if (!passwordEncoder.matches(changePasswordDTO.getCurrentPassword(),user.getPassword())) {
             throw new AuthException("Invalid password", HttpStatus.BAD_REQUEST);
         }
 
-//        if ok, change password
+        // If ok, change password
         user.setPassword(passwordEncoder.encode(changePasswordDTO.getNewPassword()));
         user.setLastPasswordChange(LocalDateTime.now());
         userService.saveUser(user);
@@ -141,7 +145,7 @@ public class AuthServiceImpl implements AuthService{
         String token = jwtUtils.generateToken(user);
         String refreshToken = RefreshTokenGenerator.generateRandomToken();
         refreshTokenService.saveToken(refreshToken,user);
-
+        logger.info("User with email: {} change password at {}", user.getEmail(),LocalDateTime.now());
         return new AuthResponseDTO(token,refreshToken,user.getId());
     }
 
@@ -149,35 +153,32 @@ public class AuthServiceImpl implements AuthService{
     @Transactional
     public void forgetPassword(ForgetPasswordDTO forgetPasswordDTO) {
 
-//        get user form database
+        // Get user form database
         User user = userService.findUserByEmail(forgetPasswordDTO.getEmail());
         if (user == null) {
             throw new AuthException("User not found", HttpStatus.NOT_FOUND);
         }
-//        generate otp and send it to email
+
+        //  Generate otp and send it to email
         String otp = otpService.generateOTP();
         LocalDateTime expireDate = otpService.generateExpirationTime();
 
-//        TODO: encrypt otp and send it to email
         String encryptedOTP = otpService.encrypt(otp);
         userOTPService.saveOTP(new UserOTPDTO(encryptedOTP,expireDate,user));
 
-//        send otp to email
+        // Send otp to email
         String mailMessage = "your otp code for reset password is: " + otp + " this valid will be expired after 30 minutes";
         emailService.sendEmail(user.getEmail(),"Reset password", mailMessage);
-
+        logger.info("Send OTP code to reset password to user {} at {}", user.getEmail(), LocalDateTime.now());
     }
 
     @Override
     @Transactional
     public void verifyOtp(VerifyOTPDTO verifyOTPDTO) {
-
-//        TODO: encrypt otp
         String otp = otpService.encrypt(verifyOTPDTO.getOTP());
         verifyOTPDTO.setOTP(otp);
         userOTPService.verify(verifyOTPDTO);
     }
-
 
     @Override
     @Transactional
@@ -192,7 +193,7 @@ public class AuthServiceImpl implements AuthService{
 
 //        Check if otp is verified or not
          if (!userOTPService.isVerified(resetPasswordDTO.getEmail())) {
-             throw new AuthException("otp not verified",HttpStatus.BAD_REQUEST);
+             throw new AuthException("Otp not verified",HttpStatus.BAD_REQUEST);
          }
 
 //        change password
@@ -237,6 +238,7 @@ public class AuthServiceImpl implements AuthService{
     @Transactional
     public void logout(RefreshTokenDTO refreshTokenDTO) {
         refreshTokenService.deleteToken(refreshTokenDTO.getUserId(),refreshTokenDTO.getToken());
+
     }
 
 

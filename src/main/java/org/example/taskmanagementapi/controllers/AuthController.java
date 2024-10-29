@@ -38,9 +38,8 @@ public class AuthController {
     }
 
     @PostMapping("change-password")
-    public ResponseEntity<ApiResponse> changePassword(@RequestBody @Valid ChangePasswordDTO changePasswordDTO,
-                                                      Principal currentUser) {
-        var data = authService.changePassword(changePasswordDTO,currentUser);
+    public ResponseEntity<ApiResponse> changePassword(@RequestBody @Valid ChangePasswordDTO changePasswordDTO) {
+        var data = authService.changePassword(changePasswordDTO);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.response(true,"Password changed successfully",data));
     }
