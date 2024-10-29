@@ -20,6 +20,12 @@ public class UserOTPServiceImpl implements UserOTPService{
         this.userOTPRepository = userOTPRepository;
     }
 
+    public UserOTP isOTPExist(VerifyOTPDTO verifyOTPDTO) {
+        LocalDateTime currentDate = LocalDateTime.now();
+        return userOTPRepository.findOTP(verifyOTPDTO.getOTP(),verifyOTPDTO.getEmail(),currentDate)
+                .orElseThrow(()-> new AuthException("Invalid otp or it expired", HttpStatus.BAD_REQUEST));
+    }
+
     @Override
     @Transactional
     public void saveOTP(UserOTPDTO otp) {
@@ -34,15 +40,9 @@ public class UserOTPServiceImpl implements UserOTPService{
     @Override
     @Transactional
     public void verify(VerifyOTPDTO verifyOTPDTO) {
-        LocalDateTime currentDate = LocalDateTime.now();
-        UserOTP otp = userOTPRepository.findUserOTPSByOtpAndExpireDateIsAfterAndUser_EmailAndVerifiedIsFalse(
-                verifyOTPDTO.getOTP(), currentDate,verifyOTPDTO.getEmail()
-        );
-
-        if (otp == null) {
-            throw new AuthException("Invalid otp or it expired", HttpStatus.BAD_REQUEST);
-        }
+        UserOTP otp = isOTPExist(verifyOTPDTO);
         otp.setVerified(true);
+        userOTPRepository.save(otp);
     }
 
     @Override

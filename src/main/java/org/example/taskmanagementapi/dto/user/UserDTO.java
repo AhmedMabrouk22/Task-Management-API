@@ -1,7 +1,10 @@
 package org.example.taskmanagementapi.dto.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.time.LocalDateTime;
 
+@JsonIgnoreProperties({"lastPasswordChange"})
 public class UserDTO {
     private long id;
     private String name;

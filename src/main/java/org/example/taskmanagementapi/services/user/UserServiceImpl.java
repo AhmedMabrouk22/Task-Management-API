@@ -5,6 +5,7 @@ import org.example.taskmanagementapi.entities.User;
 import org.example.taskmanagementapi.exceptions.NotFoundExceptionHandler;
 import org.example.taskmanagementapi.mappers.UserMapper;
 import org.example.taskmanagementapi.repositories.UserRepository;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.security.Principal;
@@ -59,7 +60,8 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public UserDTO getLoggedUser(Principal currentUser) {
-        return findUserDTOByEmail(currentUser.getName());
+    public UserDTO getLoggedUser() {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return userMapper.toDto(currentUser);
     }
 }

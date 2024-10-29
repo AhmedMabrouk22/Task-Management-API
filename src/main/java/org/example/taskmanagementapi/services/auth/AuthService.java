@@ -8,7 +8,7 @@ import java.security.Principal;
 public interface AuthService {
     AuthResponseDTO signup(SignupRequestDTO signupRequestDTO);
     AuthResponseDTO login(LoginRequestDTO loginRequestDTO);
-    AuthResponseDTO changePassword(ChangePasswordDTO changePasswordDTO, Principal currentUser);
+    AuthResponseDTO changePassword(ChangePasswordDTO changePasswordDTO);
     void forgetPassword(ForgetPasswordDTO forgetPasswordDTO);
     void verifyOtp(VerifyOTPDTO verifyOTPDTO);
     AuthResponseDTO resetPassword(ResetPasswordDTO resetPasswordDTO);
