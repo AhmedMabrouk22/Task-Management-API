@@ -13,46 +13,46 @@ import org.example.taskmanagementapi.exceptions.NotFoundExceptionHandler;
 import org.example.taskmanagementapi.exceptions.auth.AuthException;
 import org.example.taskmanagementapi.repositories.ProjectMembersRepository;
 import org.example.taskmanagementapi.repositories.ProjectRepository;
+import org.example.taskmanagementapi.services.auth.AuthService;
 import org.example.taskmanagementapi.services.user.UserService;
-import org.hibernate.exception.ConstraintViolationException;
+import org.example.taskmanagementapi.utils.PageUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import java.security.Principal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ProjectServiceImpl implements ProjectService{
     private final ProjectRepository projectRepository;
     private final UserService userService;
     private final ProjectMembersRepository projectMembersRepository;
-
+    private final AuthService authService;
     private final Environment environment;
-
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
     @Autowired
     public ProjectServiceImpl(ProjectRepository projectRepository,
                               UserService userService,
-                              ProjectMembersRepository projectMembersRepository, Environment environment) {
+                              ProjectMembersRepository projectMembersRepository,
+                              AuthService authService, Environment environment) {
         this.projectRepository = projectRepository;
         this.userService = userService;
         this.projectMembersRepository = projectMembersRepository;
+        this.authService = authService;
         this.environment = environment;
     }
 
     private ProjectMembers getTeamMember(long project_id) {
-        CustomUserDetails currentUser = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        User currentUser = authService.getLoggedUser();
         return projectMembersRepository.findByUser_Id(currentUser.getId(),project_id)
                 .orElseThrow(() -> new AuthException("You unauthorized to access this project", HttpStatus.UNAUTHORIZED));
     }
@@ -66,7 +66,11 @@ public class ProjectServiceImpl implements ProjectService{
                 project.getUpdatedAt()
         );
     }
-
+    private ProjectResponseDTO buildProjectResponse(Project project, ProjectMembersPageResponseDTO members) {
+        ProjectResponseDTO res = buildProjectResponse(project);
+        res.setProjectMembers(members);
+        return res;
+    }
     private ProjectMemberDTO buildProjectMemberResponse(ProjectMembers member) {
         User user = member.getUser();
         return new ProjectMemberDTO(
@@ -86,53 +90,41 @@ public class ProjectServiceImpl implements ProjectService{
     }
     @Override
     @Transactional
-    public ProjectResponseDTO save(CreateProjectDTO projectDTO, Principal currentUser) {
+    public ProjectResponseDTO save(CreateProjectDTO projectDTO) {
+        User currentUser = authService.getLoggedUser();
         Project project = new Project();
         project.setName(projectDTO.getName());
         project.setDescription(projectDTO.getDescription());
-
-        User user = userService.findUserByEmail(currentUser.getName());
         ProjectMembers members = new ProjectMembers();
-        members.setUser(user);
+        members.setUser(currentUser);
         members.setProject(project);
         members.setRole(ProjectRole.PROJECT_MANAGER);
 
+        projectRepository.save(project);
         projectMembersRepository.save(members);
-        project = projectRepository.save(project);
+        logger.info("User '{}' create new project named '{}' and id {} at {}",
+                currentUser.getEmail(),project.getName(),project.getId(),LocalDateTime.now());
         return buildProjectResponse(project);
-
     }
 
     @Override
     public ProjectResponseDTO findProjectDTOById(long id) {
         Project project =  findProjectById(id);
-        getTeamMember(id);
+        getTeamMember(id); // check if the logged user is a member in this project or throw error
 
         String sizeENV = environment.getProperty("project.members.size");
         int size = 10;
         if (sizeENV != null) size = Integer.parseInt(sizeENV);
         ProjectMembersPageResponseDTO members = getProjectMembers(id,0,size);
 
-//        System.out.println("Project Members: ");
-//        project.getTeamMembers().forEach(member -> {
-//            System.out.println("name: " + member.getUser().getName());
-//            System.out.println("image: " + member.getUser().getImage());
-//            System.out.println("email: " + member.getUser().getEmail());
-//        });
-        return new ProjectResponseDTO(
-                project.getId(),
-                project.getName(),
-                project.getDescription(),
-                members,
-                project.getCreatedAt(),
-                project.getUpdatedAt()
-        );
+        return buildProjectResponse(project,members);
     }
 
     @Override
     @Transactional
     public ProjectResponseDTO updateById(long id, CreateProjectDTO projectDTO) {
         Project project =  findProjectById(id);
+
         // Check if the user is member in this project and the role is PROJECT_MANAGER
         var member = getTeamMember(id);
         if ( member.getRole() != ProjectRole.PROJECT_MANAGER) {
@@ -143,8 +135,7 @@ public class ProjectServiceImpl implements ProjectService{
                 project.setName(projectDTO.getName());
         if (projectDTO.getDescription() != null)
             project.setDescription(projectDTO.getDescription());
-
-        project.setUpdatedAt(LocalDateTime.now());
+//        project.setUpdatedAt(LocalDateTime.now());
         projectRepository.save(project);
         return buildProjectResponse(project);
     }
@@ -167,17 +158,13 @@ public class ProjectServiceImpl implements ProjectService{
         CustomUserDetails currentUser = (CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Pageable pageable = PageRequest.of(page, size);
         Page<Project> projects = projectRepository.findAllByTeamMembers_UserId(currentUser.getId(),pageable);
-        List<ProjectResponseDTO> projectResponses = projects.stream()
-                .map(this::buildProjectResponse)
-                .toList();
-
+        List<ProjectResponseDTO> projectResponses = PageUtils.convertPage(projects,this::buildProjectResponse);
         return new ProjectPageResponseDTO(
                 projectResponses,
                 projects.getTotalPages(),
                 projects.getTotalElements(),
                 projects.getNumber()
         );
-
     }
 
     @Override
@@ -216,9 +203,7 @@ public class ProjectServiceImpl implements ProjectService{
     public ProjectMembersPageResponseDTO getProjectMembers(long project_id, int page, int size) {
         Pageable pageable = PageRequest.of(page,size);
         Page<ProjectMembers> members = projectMembersRepository.findByProject_Id(project_id,pageable);
-        List<ProjectMemberDTO> projectMember = members.stream()
-                .map(this::buildProjectMemberResponse)
-                .toList();
+        List<ProjectMemberDTO> projectMember = PageUtils.convertPage(members,this::buildProjectMemberResponse);
 
         return new ProjectMembersPageResponseDTO(
                 members.getTotalPages(),

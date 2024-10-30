@@ -6,10 +6,8 @@ import org.example.taskmanagementapi.dto.project.ProjectPageResponseDTO;
 import org.example.taskmanagementapi.dto.project.ProjectResponseDTO;
 import org.example.taskmanagementapi.entities.Project;
 
-import java.security.Principal;
-
 public interface ProjectService {
-    ProjectResponseDTO save(CreateProjectDTO projectDTO, Principal currentUser);
+    ProjectResponseDTO save(CreateProjectDTO projectDTO);
     Project findProjectById(long id);
     ProjectResponseDTO findProjectDTOById(long id);
     ProjectResponseDTO updateById(long id, CreateProjectDTO projectDTO);
