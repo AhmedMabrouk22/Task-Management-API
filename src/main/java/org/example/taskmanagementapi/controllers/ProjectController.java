@@ -11,8 +11,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
-
 @RestController
 @RequestMapping("api/projects")
 @Validated
@@ -25,9 +23,9 @@ public class ProjectController {
     }
 
 
-    @RequestMapping
-    public ResponseEntity<ApiResponse> createProject(@RequestBody @Valid CreateProjectDTO projectDTO, Principal currentUser) {
-        var data = projectService.save(projectDTO, currentUser);
+    @PostMapping
+    public ResponseEntity<ApiResponse> createProject(@RequestBody @Valid CreateProjectDTO projectDTO) {
+        var data = projectService.save(projectDTO);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.response(true,"project created successfully", data));
     }

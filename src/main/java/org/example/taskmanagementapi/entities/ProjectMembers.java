@@ -25,6 +25,16 @@ public class ProjectMembers {
     @Enumerated(EnumType.STRING)
     private ProjectRole role;
 
+    public ProjectMembers() {
+    }
+
+    public ProjectMembers(long id, Project project, User user, ProjectRole role) {
+        this.id = id;
+        this.project = project;
+        this.user = user;
+        this.role = role;
+    }
+
     public long getId() {
         return id;
     }

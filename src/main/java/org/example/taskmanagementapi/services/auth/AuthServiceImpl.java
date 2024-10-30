@@ -73,6 +73,11 @@ public class AuthServiceImpl implements AuthService{
     }
 
     @Override
+    public User getLoggedUser() {
+        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+
+    @Override
     @Transactional
     public AuthResponseDTO signup(SignupRequestDTO signupRequestDTO) {
         // Check if the email exist

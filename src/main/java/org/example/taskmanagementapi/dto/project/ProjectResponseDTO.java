@@ -11,6 +11,7 @@ public class ProjectResponseDTO extends CreateProjectDTO{
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    public ProjectResponseDTO() {}
 
     public ProjectResponseDTO(long id, String name, String description, LocalDateTime createdAt, LocalDateTime updatedAt) {
         super(name, description);
