@@ -4,6 +4,8 @@ package org.example.taskmanagementapi.exceptions;
 import org.example.taskmanagementapi.exceptions.auth.AuthException;
 import org.example.taskmanagementapi.exceptions.auth.InvalidEmailOrPasswordException;
 import org.example.taskmanagementapi.utils.ErrorResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -12,9 +14,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import java.util.Arrays;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private Logger logger = LoggerFactory.getLogger(this.getClass());
     @ExceptionHandler(NotFoundExceptionHandler.class)
     public ResponseEntity<ErrorResponse> handleNotFoundException(NotFoundExceptionHandler ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -64,8 +69,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handelGlobalException(Exception ex) {
-        System.out.println("Error: " + ex.getMessage());
-        ex.printStackTrace();
+        logger.error(ex.getMessage());
+        logger.error(ex.getCause().toString());
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorResponse.response("An unexpected error occurred"));
     }
 }

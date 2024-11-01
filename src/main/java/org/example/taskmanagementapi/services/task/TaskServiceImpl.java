@@ -9,7 +9,6 @@ import org.example.taskmanagementapi.entities.Project;
 import org.example.taskmanagementapi.entities.ProjectMembers;
 import org.example.taskmanagementapi.entities.Task;
 import org.example.taskmanagementapi.entities.User;
-import org.example.taskmanagementapi.enums.TaskPriority;
 import org.example.taskmanagementapi.enums.TasksStatus;
 import org.example.taskmanagementapi.exceptions.NotFoundExceptionHandler;
 import org.example.taskmanagementapi.exceptions.auth.AuthException;
@@ -85,7 +84,7 @@ public class TaskServiceImpl implements TaskService{
     public TaskDTO create(CreateTaskDTO taskDTO) {
 //        Get logged user and check if is member in this project and has role project manager
         ProjectMembers member = projectMembersService.getProjectMember(taskDTO.getProjectId());
-        if (!projectMembersService.isProjectManager(member)) {
+        if (projectMembersService.isNotProjectManager(member)) {
             throw new AuthException("You Unauthorized to add task to this project", HttpStatus.UNAUTHORIZED);
         }
 
@@ -113,7 +112,7 @@ public class TaskServiceImpl implements TaskService{
     public void delete(long taskId) {
         Task task = findTaskById(taskId);
         ProjectMembers member = projectMembersService.getProjectMember(task.getProject().getId());
-        if (!projectMembersService.isProjectManager(member)) {
+        if (projectMembersService.isNotProjectManager(member)) {
             throw new AuthException("You Unauthorized to delete task from this project", HttpStatus.UNAUTHORIZED);
         }
 
@@ -128,7 +127,7 @@ public class TaskServiceImpl implements TaskService{
 
         if (isNeedAuthToUpdate(taskDTO)) {
             // check if the user role is project manager
-            if (!projectMembersService.isProjectManager(member)) {
+            if (projectMembersService.isNotProjectManager(member)) {
                 throw new AuthException("You Unauthorized to update this task", HttpStatus.UNAUTHORIZED);
             }
             updateFields(task,taskDTO);
@@ -136,7 +135,7 @@ public class TaskServiceImpl implements TaskService{
 
 
         if (taskDTO.getStatus() != null) {
-            if (!projectMembersService.isProjectManager(member) && task.getUser().getId() != member.getId())
+            if (projectMembersService.isNotProjectManager(member) && task.getUser().getId() != member.getId())
                 throw new AuthException("You Unauthorized to update this task", HttpStatus.UNAUTHORIZED);
             task.setStatus(taskDTO.getStatus());
         }

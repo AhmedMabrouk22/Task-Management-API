@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.example.taskmanagementapi.dto.project.CreateProjectDTO;
 import org.example.taskmanagementapi.dto.user.UserEmailDTO;
 import org.example.taskmanagementapi.services.project.ProjectService;
+import org.example.taskmanagementapi.services.project_members.ProjectMembersService;
 import org.example.taskmanagementapi.utils.ApiResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -63,7 +64,7 @@ public class ProjectController {
     @PostMapping("/{id}/members")
     public ResponseEntity<ApiResponse> addTeamMember(@RequestBody @Valid UserEmailDTO email,
                                                      @PathVariable long id) {
-        projectService.addTeamMember(email.getEmail(),id);
+        projectService.addProjectMember(email.getEmail(),id);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(ApiResponse.response(true,"member add successfully to project with id: " + id, null));
     }
@@ -77,10 +78,10 @@ public class ProjectController {
                 .body(ApiResponse.response(true,"project members get successfully", data));
     }
 
-    @DeleteMapping("/{project_id}/members/{member_id}")
-    public ResponseEntity<ApiResponse> deleteTeamMember(@PathVariable long project_id, @PathVariable long member_id) {
-        projectService.deleteTeamMember(member_id,project_id);
+    @DeleteMapping("/{projectId}/members/{memberId}")
+    public ResponseEntity<ApiResponse> deleteTeamMember(@PathVariable long projectId, @PathVariable long memberId) {
+        projectService.deleteProjectMember(memberId,projectId);
         return ResponseEntity.status(HttpStatus.OK)
-                .body(ApiResponse.response(true,"member deleted successfully to project with id: " + project_id, null));
+                .body(ApiResponse.response(true,"member deleted successfully to project with id: " + projectId, null));
     } 
 }
