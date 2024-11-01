@@ -14,6 +14,7 @@ import org.example.taskmanagementapi.exceptions.auth.AuthException;
 import org.example.taskmanagementapi.repositories.ProjectMembersRepository;
 import org.example.taskmanagementapi.repositories.ProjectRepository;
 import org.example.taskmanagementapi.services.auth.AuthService;
+import org.example.taskmanagementapi.services.project_members.ProjectMembersService;
 import org.example.taskmanagementapi.services.user.UserService;
 import org.example.taskmanagementapi.utils.PageUtils;
 import org.slf4j.Logger;
@@ -30,32 +31,34 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.function.Function;
 
 @Service
 public class ProjectServiceImpl implements ProjectService{
     private final ProjectRepository projectRepository;
     private final UserService userService;
-    private final ProjectMembersRepository projectMembersRepository;
+//    private final ProjectMembersRepository projectMembersRepository;
+    private final ProjectMembersService projectMembersService;
     private final AuthService authService;
     private final Environment environment;
     private Logger logger = LoggerFactory.getLogger(this.getClass());
     @Autowired
     public ProjectServiceImpl(ProjectRepository projectRepository,
                               UserService userService,
-                              ProjectMembersRepository projectMembersRepository,
+                              ProjectMembersService projectMembersService,
                               AuthService authService, Environment environment) {
         this.projectRepository = projectRepository;
         this.userService = userService;
-        this.projectMembersRepository = projectMembersRepository;
+        this.projectMembersService = projectMembersService;
         this.authService = authService;
         this.environment = environment;
     }
 
-    private ProjectMembers getTeamMember(long project_id) {
-        User currentUser = authService.getLoggedUser();
-        return projectMembersRepository.findByUser_Id(currentUser.getId(),project_id)
-                .orElseThrow(() -> new AuthException("You unauthorized to access this project", HttpStatus.UNAUTHORIZED));
-    }
+//    private ProjectMembers getTeamMember(long project_id) {
+//        User currentUser = authService.getLoggedUser();
+//        return projectMembersRepository.findByUser_Id(currentUser.getId(),project_id)
+//                .orElseThrow(() -> new AuthException("You unauthorized to access this project", HttpStatus.UNAUTHORIZED));
+//    }
 
     private ProjectResponseDTO buildProjectResponse(Project project) {
         return new ProjectResponseDTO(
@@ -101,7 +104,7 @@ public class ProjectServiceImpl implements ProjectService{
         members.setRole(ProjectRole.PROJECT_MANAGER);
 
         projectRepository.save(project);
-        projectMembersRepository.save(members);
+        projectMembersService.addMember(members);
         logger.info("User '{}' create new project named '{}' and id {} at {}",
                 currentUser.getEmail(),project.getName(),project.getId(),LocalDateTime.now());
         return buildProjectResponse(project);
@@ -110,7 +113,7 @@ public class ProjectServiceImpl implements ProjectService{
     @Override
     public ProjectResponseDTO findProjectDTOById(long id) {
         Project project =  findProjectById(id);
-        getTeamMember(id); // check if the logged user is a member in this project or throw error
+        projectMembersService.getProjectMember(id); // check if the logged user is a member in this project or throw error
 
         String sizeENV = environment.getProperty("project.members.size");
         int size = 10;
@@ -126,7 +129,7 @@ public class ProjectServiceImpl implements ProjectService{
         Project project =  findProjectById(id);
 
         // Check if the user is member in this project and the role is PROJECT_MANAGER
-        var member = getTeamMember(id);
+        var member = projectMembersService.getProjectMember(id);
         if ( member.getRole() != ProjectRole.PROJECT_MANAGER) {
             throw new AuthException("You Unauthorized to update this project", HttpStatus.UNAUTHORIZED);
         }
@@ -144,7 +147,7 @@ public class ProjectServiceImpl implements ProjectService{
     @Transactional
     public void deleteById(long project_id) {
         findProjectById(project_id);
-        ProjectMembers member = getTeamMember(project_id);
+        ProjectMembers member = projectMembersService.getProjectMember(project_id);
         if ( member.getRole() != ProjectRole.PROJECT_MANAGER) {
             throw new AuthException("You Unauthorized to delete this project", HttpStatus.UNAUTHORIZED);
         }
@@ -167,52 +170,42 @@ public class ProjectServiceImpl implements ProjectService{
         );
     }
 
+
     @Override
     @Transactional
-    public void addTeamMember(String user_email,long project_id) {
+    public void addProjectMember(String userEmail,long projectId) {
         try {
-            var projectManager = getTeamMember(project_id);
-            if (projectManager.getRole() != ProjectRole.PROJECT_MANAGER) {
+            var projectMember = projectMembersService.getProjectMember(projectId);
+            if (projectMembersService.isNotProjectManager(projectMember)) {
                 throw new AuthException("You Unauthorized to add member to this project", HttpStatus.UNAUTHORIZED);
             }
-
-            User user = userService.findUserByEmail(user_email);
-            Project project = findProjectById(project_id);
+            User user = userService.findUserByEmail(userEmail);
+            Project project = projectMember.getProject();
             ProjectMembers member = new ProjectMembers();
             member.setRole(ProjectRole.TEAM_MEMBER);
             member.setUser(user);
             member.setProject(project);
-            projectMembersRepository.save(member);
+            projectMembersService.addMember(member);
         }
         catch (DataIntegrityViolationException ex) {
-            throw new DatabaseException("user with email: " + user_email + " already member in this project");
+            throw new DatabaseException("user with email: " + userEmail + " already member in this project");
         }
     }
 
     @Override
     @Transactional
-    public void deleteTeamMember(long user_id, long project_id) {
-        var projectManager = getTeamMember(project_id);
+    public void deleteProjectMember(long userId, long projectId) {
+        var projectManager = projectMembersService.getProjectMember(projectId);
         if (projectManager.getRole() != ProjectRole.PROJECT_MANAGER) {
             throw new AuthException("You Unauthorized to delete member from this project", HttpStatus.UNAUTHORIZED);
         }
-        projectMembersRepository.deleteByUser_IdAndProject_Id(user_id,project_id);
+        projectMembersService.deleteMember(userId,projectId);
     }
 
     @Override
-    public ProjectMembersPageResponseDTO getProjectMembers(long project_id, int page, int size) {
-        Pageable pageable = PageRequest.of(page,size);
-        Page<ProjectMembers> members = projectMembersRepository.findByProject_Id(project_id,pageable);
-        List<ProjectMemberDTO> projectMember = PageUtils.convertPage(members,this::buildProjectMemberResponse);
-
-        return new ProjectMembersPageResponseDTO(
-                members.getTotalPages(),
-                members.getTotalElements(),
-                members.getNumber(),
-                projectMember
-        );
+    public ProjectMembersPageResponseDTO getProjectMembers(long projectId, int page, int size) {
+        return projectMembersService.getMembers(projectId,page,size);
     }
-
 
 }
 

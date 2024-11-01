@@ -14,9 +14,10 @@ public interface ProjectService {
     void deleteById(long project_id);
 
     ProjectPageResponseDTO getAllProjects(int page, int size);
-    void addTeamMember(String user_email, long project_id);
-    void deleteTeamMember(long user_id,long project_id);
 
-    ProjectMembersPageResponseDTO getProjectMembers(long project_id, int page, int size);
+    void addProjectMember(String userEmail, long projectId);
+    void deleteProjectMember(long userId,long projectId);
+
+    ProjectMembersPageResponseDTO getProjectMembers(long projectId, int page, int size);
 
 }

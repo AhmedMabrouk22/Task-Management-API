@@ -11,6 +11,7 @@ import org.example.taskmanagementapi.exceptions.auth.AuthException;
 import org.example.taskmanagementapi.repositories.ProjectMembersRepository;
 import org.example.taskmanagementapi.repositories.ProjectRepository;
 import org.example.taskmanagementapi.services.auth.AuthService;
+import org.example.taskmanagementapi.services.project_members.ProjectMemberServiceImpl;
 import org.example.taskmanagementapi.services.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +31,7 @@ class ProjectServiceTest {
     @Mock
     private UserService userService;
     @Mock
-    private ProjectMembersRepository projectMembersRepository;
+    private ProjectMemberServiceImpl projectMemberService;
     @Mock
     private Environment environment;
     @Mock
@@ -56,7 +57,7 @@ class ProjectServiceTest {
         mockMembers.setRole(ProjectRole.PROJECT_MANAGER);
         when(authService.getLoggedUser()).thenReturn(mockUser);
         when(projectRepository.save(mockProject)).thenReturn(new Project("Project 1","Test"));
-        when(projectMembersRepository.save(mockMembers)).thenReturn(mockMembers);
+        when(projectMemberService.addMember(mockMembers)).thenReturn(mockMembers);
 
         ProjectResponseDTO res = projectService.save(mockProjectDTO);
 
@@ -73,7 +74,7 @@ class ProjectServiceTest {
         long projectId = 1;
         when(projectRepository.findById(projectId)).thenReturn(Optional.of(mockProject));
         when(authService.getLoggedUser()).thenReturn(mockUser);
-        when(projectMembersRepository.findByUser_Id(mockUser.getId(),projectId)).thenReturn(Optional.of(mockMember));
+        when(projectMemberService.getProjectMember(projectId)).thenReturn(mockMember);
 
         AuthException ex = assertThrows(AuthException.class, ()
                 -> projectService.updateById(1,new CreateProjectDTO("project","project")));
