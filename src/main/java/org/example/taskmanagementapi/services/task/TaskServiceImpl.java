@@ -1,5 +1,6 @@
 package org.example.taskmanagementapi.services.task;
 
+import io.jsonwebtoken.lang.Strings;
 import jakarta.transaction.Transactional;
 import org.example.taskmanagementapi.dto.task.CreateTaskDTO;
 import org.example.taskmanagementapi.dto.task.TaskDTO;
@@ -9,6 +10,7 @@ import org.example.taskmanagementapi.entities.Project;
 import org.example.taskmanagementapi.entities.ProjectMembers;
 import org.example.taskmanagementapi.entities.Task;
 import org.example.taskmanagementapi.entities.User;
+import org.example.taskmanagementapi.enums.ProjectRole;
 import org.example.taskmanagementapi.enums.TasksStatus;
 import org.example.taskmanagementapi.exceptions.NotFoundExceptionHandler;
 import org.example.taskmanagementapi.exceptions.auth.AuthException;
@@ -17,6 +19,7 @@ import org.example.taskmanagementapi.repositories.TaskRepository;
 import org.example.taskmanagementapi.repositories.specifications.TaskSpecification;
 import org.example.taskmanagementapi.services.project_members.ProjectMembersService;
 import org.example.taskmanagementapi.services.user.UserService;
+import org.example.taskmanagementapi.utils.PageUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -72,6 +75,11 @@ public class TaskServiceImpl implements TaskService{
         if (taskDTO.getAssignToId() != 0) {
             User user = userService.findUserById(taskDTO.getAssignToId());
             task.setUser(user);
+            ProjectMembers member = new ProjectMembers();
+            member.setRole(ProjectRole.TEAM_MEMBER);
+            member.setProject(task.getProject());
+            member.setUser(user);
+            projectMembersService.addMember(member);
         }
 
         if (taskDTO.getPriority() != null) {
@@ -143,7 +151,7 @@ public class TaskServiceImpl implements TaskService{
         Task updatedTask = taskRepository.save(task);
         TaskDTO updatedTaskDTO =  taskMapper.toDto(updatedTask);
         if (updatedTaskDTO.getAssignTo() != null)
-            updatedTaskDTO.getAssignTo().setRole(member.getRole());
+            updatedTaskDTO.getAssignTo().setRole(ProjectRole.TEAM_MEMBER);
         return updatedTaskDTO;
     }
 
@@ -155,13 +163,7 @@ public class TaskServiceImpl implements TaskService{
             throw new AuthException("You Unauthorized to get this task", HttpStatus.UNAUTHORIZED);
         }
 
-        // TODO: add task activity
-        // TODO: add task comments
-
-        TaskDTO taskDTO = taskMapper.toDto(task);
-        if (taskDTO.getAssignTo() != null)
-            taskDTO.getAssignTo().setRole(member.getRole());
-        return taskDTO;
+        return taskMapper.toDto(task);
     }
 
     @Override
@@ -171,6 +173,9 @@ public class TaskServiceImpl implements TaskService{
                                            String priority,
                                            Long assignTo) {
         Sort sortBy = Sort.unsorted();
+
+        if (sort == null) sort = new String[]{};
+
         for (String s : sort)
             sortBy = sortBy.and((s.startsWith("-") ?
                     Sort.by(s.substring(1)).descending() :
@@ -184,10 +189,7 @@ public class TaskServiceImpl implements TaskService{
                 .and(TaskSpecification.statusEquals(status));
 
         Page<Task> tasksPage = taskRepository.findAll(spec, pageable);
-
-        List<TaskDTO> taskDTOList = tasksPage.stream()
-                .map(this::buildTaskDTO)
-                .toList();
+        List<TaskDTO> taskDTOList = PageUtils.convertPage(tasksPage,this::buildTaskDTO);
 
         return new TaskPageResponseDTO(
                 tasksPage.getTotalPages(),
